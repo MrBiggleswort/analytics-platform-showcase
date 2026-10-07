@@ -1,0 +1,70 @@
+# Этот файл показывает только топологию runtime.
+# Production images, ports, volumes и secrets не публикуются.
+
+services:
+  postgres:
+    image: platform-postgres:${PLATFORM_VERSION}
+    restart: unless-stopped
+    networks:
+      - backend
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    networks:
+      - backend
+
+  airflow-init:
+    image: platform-airflow:${PLATFORM_VERSION}
+    depends_on:
+      - postgres
+      - redis
+    command:
+      - airflow
+      - db
+      - migrate
+    networks:
+      - backend
+
+  airflow-webserver:
+    image: platform-airflow:${PLATFORM_VERSION}
+    depends_on:
+      - airflow-init
+    restart: unless-stopped
+    networks:
+      - backend
+
+  airflow-scheduler:
+    image: platform-airflow:${PLATFORM_VERSION}
+    depends_on:
+      - airflow-init
+    restart: unless-stopped
+    networks:
+      - backend
+
+  airflow-worker:
+    image: platform-airflow:${PLATFORM_VERSION}
+    depends_on:
+      - airflow-init
+      - redis
+    restart: unless-stopped
+    networks:
+      - backend
+
+  superset-init:
+    image: platform-superset:${PLATFORM_VERSION}
+    depends_on:
+      - postgres
+    networks:
+      - backend
+
+  superset:
+    image: platform-superset:${PLATFORM_VERSION}
+    depends_on:
+      - superset-init
+    restart: unless-stopped
+    networks:
+      - backend
+
+networks:
+  backend:
